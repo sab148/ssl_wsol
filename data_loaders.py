@@ -195,8 +195,9 @@ class WSOLImageLabelDataset(Dataset):
         image_label = self.image_labels[image_id]
         image = Image.open(os.path.join(self.data_root, image_id))
         image = image.convert('RGB')
-        image = self.transform(image)
-        return image, image_label, image_id
+        if self.transform is not None:
+            image = self.transform(image)
+        return [image, image_label, image_id]
 
     def __len__(self):
         return len(self.image_ids)
@@ -204,7 +205,7 @@ class WSOLImageLabelDataset(Dataset):
 
 def get_data_loader(data_roots, metadata_root, batch_size, workers,
                     resize_size, crop_size, proxy_training_set,
-                    num_val_sample_per_class=0):
+                    num_val_sample_per_class=0, to_augmented_dataset=True):
     dataset_transforms = dict(
         train=transforms.Compose([
             transforms.Resize((resize_size, resize_size)),
@@ -224,6 +225,25 @@ def get_data_loader(data_roots, metadata_root, batch_size, workers,
             transforms.Normalize(_IMAGE_MEAN_VALUE, _IMAGE_STD_VALUE)
         ]))
 
+    
+
+    # Wrap into other dataset (__getitem__ changes)
+    if to_augmented_dataset: # Dataset returns an image and an augmentation of that image.
+        from custom_dataset import AugmentedDataset
+        train_data = DataLoader(
+            AugmentedDataset(
+                WSOLImageLabelDataset(
+                    data_root=data_roots['train'],
+                    metadata_root=os.path.join(metadata_root, 'train'),
+                    transform=dataset_transforms['train'],
+                    proxy=proxy_training_set and _SPLITS[0] == 'train',
+                    num_sample_per_class=(0)
+                )),
+                batch_size=batch_size,
+                shuffle=True,
+                num_workers=workers)
+            
+    
     loaders = {
         split: DataLoader(
             WSOLImageLabelDataset(
@@ -232,11 +252,12 @@ def get_data_loader(data_roots, metadata_root, batch_size, workers,
                 transform=dataset_transforms[split],
                 proxy=proxy_training_set and split == 'train',
                 num_sample_per_class=(num_val_sample_per_class
-                                      if split == 'val' else 0)
+                                    if split == 'val' else 0)
             ),
             batch_size=batch_size,
             shuffle=split == 'train',
             num_workers=workers)
         for split in _SPLITS
     }
+    loaders['train'] = train_data
     return loaders

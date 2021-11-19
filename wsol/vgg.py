@@ -56,8 +56,12 @@ class VggCam(nn.Module):
         self.conv6 = nn.Conv2d(512, 1024, kernel_size=3, padding=1)
         self.relu = nn.ReLU(inplace=False)
         self.avgpool = nn.AdaptiveAvgPool2d(1)
+        self.fc_ssl = nn.Identity()
         self.fc = nn.Linear(1024, num_classes)
+        
         initialize_weights(self.modules(), init_mode='he')
+        
+        self.dim = 1024
 
     def forward(self, x, labels=None, return_cam=False):
         x = self.features(x)
@@ -65,6 +69,7 @@ class VggCam(nn.Module):
         x = self.relu(x)
         pre_logit = self.avgpool(x)
         pre_logit = pre_logit.view(pre_logit.size(0), -1)
+        pre_logit = self.fc_ssl(pre_logit)
         logits = self.fc(pre_logit)
 
         if return_cam:
@@ -73,7 +78,7 @@ class VggCam(nn.Module):
             cams = (cam_weights.view(*feature_map.shape[:2], 1, 1) *
                     feature_map).mean(1, keepdim=False)
             return cams
-        return {'logits': logits}
+        return {'logits': logits, 'pre_logits': pre_logit}
 
 
 class VggAcol(AcolBase):

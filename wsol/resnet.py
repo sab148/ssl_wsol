@@ -84,9 +84,11 @@ class ResNetCam(nn.Module):
         self.layer3 = self._make_layer(block, 256, layers[2], stride=stride_l3)
         self.layer4 = self._make_layer(block, 512, layers[3], stride=1)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc_ssl = nn.Identity()
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
         initialize_weights(self.modules(), init_mode='xavier')
+        self.dim = 512 * block.expansion
 
     def forward(self, x, labels=None, return_cam=False):
         x = self.conv1(x)
@@ -101,6 +103,7 @@ class ResNetCam(nn.Module):
 
         pre_logit = self.avgpool(x)
         pre_logit = pre_logit.reshape(pre_logit.size(0), -1)
+        pre_logit = self.fc_ssl(pre_logit)
         logits = self.fc(pre_logit)
 
         if return_cam:
@@ -109,7 +112,7 @@ class ResNetCam(nn.Module):
             cams = (cam_weights.view(*feature_map.shape[:2], 1, 1) *
                     feature_map).mean(1, keepdim=False)
             return cams
-        return {'logits': logits}
+        return {'logits': logits, 'pre_logits': pre_logit}
 
     def _make_layer(self, block, planes, blocks, stride):
         layers = self._layer(block, planes, blocks, stride)

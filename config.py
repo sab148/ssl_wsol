@@ -192,6 +192,8 @@ def get_configs():
                              'using Data Parallel or Distributed Data Parallel')
     parser.add_argument('--lr', default=0.01, type=float,
                         help='initial learning rate', dest='lr')
+    parser.add_argument('--lr_decay_rate', default=0.1, type=float,
+                        help='learning rate decay rate')
     parser.add_argument('--lr_decay_frequency', type=int, default=30,
                         help='How frequently do we decay the learning rate?')
     parser.add_argument('--lr_classifier_ratio', type=float, default=10,
@@ -231,6 +233,34 @@ def get_configs():
                         help='CutMix beta')
     parser.add_argument('--cutmix_prob', type=float, default=1.0,
                         help='CutMix Mixing Probability')
+
+    # ssl parameters
+    parser.add_argument('--config_env',
+                        help='Config file for the environment')
+    parser.add_argument('--config_exp',
+                        help='Config file for the experiment')
+    
+    parser.add_argument('--head', type=str, default= 'mlp', 
+                        help='head of the backbone')
+    parser.add_argument('--features_dim', type=int, default=128, 
+                        help='features dimension of linear')
+
+   
+    parser.add_argument('--criterion', type=str, default='simclr', 
+                        help='criterion')
+    parser.add_argument('--temperature', type=float, default=0.1, 
+                        help='param of criterion')
+
+    parser.add_argument('--optimizer', type=str, default='sgd', 
+                        help='optimizer')
+    parser.add_argument('--nesterov', type=bool, default=False, 
+                        help='nesterov')
+
+    parser.add_argument('--scheduler', type=str, default='cosine', 
+                        help='cosine')
+
+    parser.add_argument('--setup', type=str, default='simclr', 
+                        help='choose the loss for ssl')
 
     args = parser.parse_args()
 
