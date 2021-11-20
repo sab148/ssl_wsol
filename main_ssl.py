@@ -136,6 +136,7 @@ class Trainer(object):
             from wsol.method.models import ContrastiveModel
             model = ContrastiveModel(model, model.dim, self.args.head, self.args.features_dim)
 
+        model = nn.DataParallel()
         model = model.cuda()
         print(model)
         return model

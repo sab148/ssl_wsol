@@ -145,7 +145,7 @@ class SimCLRLoss(nn.Module):
         anchor = features[:, 0]
 
         # Dot product
-        dot_product = torch.matmul(anchor, contrast_features.T) / self.temperature
+        dot_product = torch.matmul(anchor, torch.t(contrast_features)) / self.temperature
         
         # Log-sum trick for numerical stability
         logits_max, _ = torch.max(dot_product, dim=1, keepdim=True)

@@ -207,6 +207,16 @@ def get_data_loader(data_roots, metadata_root, batch_size, workers,
                     resize_size, crop_size, proxy_training_set,
                     num_val_sample_per_class=0, to_augmented_dataset=True):
     dataset_transforms = dict(
+        augment=transforms.Compose([
+            transforms.RandomResizedCrop(crop_size),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomApply([
+                transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.4)
+            ], p=0.8),
+            transforms.RandomGrayscale(0.2),
+            transforms.ToTensor(),
+            transforms.Normalize(_IMAGE_MEAN_VALUE, _IMAGE_STD_VALUE)
+        ]),
         train=transforms.Compose([
             transforms.Resize((resize_size, resize_size)),
             transforms.RandomCrop(crop_size),
@@ -238,7 +248,7 @@ def get_data_loader(data_roots, metadata_root, batch_size, workers,
                     transform=dataset_transforms['train'],
                     proxy=proxy_training_set and _SPLITS[0] == 'train',
                     num_sample_per_class=(0)
-                )),
+                ), dataset_transforms),
                 batch_size=batch_size,
                 shuffle=True,
                 num_workers=workers)
