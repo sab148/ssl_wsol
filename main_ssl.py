@@ -131,7 +131,7 @@ class Trainer(object):
             adl_drop_threshold=self.args.adl_threshold,
             acol_drop_threshold=self.args.acol_threshold)
 
-#s
+#
         # if self.args.setup in ['simclr', 'moco']:
         #     from wsol.method.models import ContrastiveModel
         #     model = ContrastiveModel(model, model.dim, self.args.head, self.args.features_dim)
@@ -238,15 +238,15 @@ class Trainer(object):
         for i, batch in enumerate(loader):
             images = batch[0]
             images_augmented = batch[-1]
-            targets = batch[1]
+        #    targets = batch[1].cuda(non_blocking=True)
             b, c, h, w = images.size()
             input_ = torch.cat([images.unsqueeze(1), images_augmented.unsqueeze(1)], dim=1)
             input_ = input_.view(-1, c, h, w) 
             input_ = input_.cuda(non_blocking=True)
-        #    targets = torch.cat((batch[1],batch[1]),0).cuda(non_blocking=True)
+            targets = torch.cat((batch[1],batch[1]),0).cuda(non_blocking=True)
             #targets = batch['target'].cuda(non_blocking=True)
 
-            output, output_classes = self.model(images)
+            output, output_classes = self.model(input_)
             output = output.view(b, 2, -1)
             pred = output_classes.argmax(dim=1)
 
