@@ -27,9 +27,9 @@ class ContrastiveModel(nn.Module):
 
     def forward(self, x, labels=None, return_cam=False):
         logits = self.backbone(x)
-        features = self.contrastive_head(logits['pre_logits'])
+        features = self.contrastive_head(logits[0])
         features = F.normalize(features, dim = 1)
-        feat_classes = logits['logits']
+        feat_classes = logits[1]
 
         if return_cam:
             return self.backbone(x, labels, return_cam)
