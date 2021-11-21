@@ -131,11 +131,12 @@ class Trainer(object):
             adl_drop_threshold=self.args.adl_threshold,
             acol_drop_threshold=self.args.acol_threshold)
 
+#s
+        # if self.args.setup in ['simclr', 'moco']:
+        #     from wsol.method.models import ContrastiveModel
+        #     model = ContrastiveModel(model, model.dim, self.args.head, self.args.features_dim)
 
-        if self.args.setup in ['simclr', 'moco']:
-            from wsol.method.models import ContrastiveModel
-            model = ContrastiveModel(model, model.dim, self.args.head, self.args.features_dim)
-
+        model = nn.DataParallel(model)
         model = model.cuda()
         print(model)
         return model
@@ -237,30 +238,29 @@ class Trainer(object):
         for i, batch in enumerate(loader):
             images = batch[0]
             images_augmented = batch[-1]
+            targets = batch[1]
             b, c, h, w = images.size()
             input_ = torch.cat([images.unsqueeze(1), images_augmented.unsqueeze(1)], dim=1)
             input_ = input_.view(-1, c, h, w) 
             input_ = input_.cuda(non_blocking=True)
-            targets = torch.cat((batch[1],batch[1]),0).cuda(non_blocking=True)
+        #    targets = torch.cat((batch[1],batch[1]),0).cuda(non_blocking=True)
             #targets = batch['target'].cuda(non_blocking=True)
 
-            output, output_classes = self.model(input_)
+            output, output_classes = self.model(images)
             output = output.view(b, 2, -1)
             pred = output_classes.argmax(dim=1)
 
             
 
-            loss1 = self.criterion(output)
+#            loss1 = self.criterion(output)
 
-            loss2 = self.cross_entropy_loss(output_classes, targets)
+            loss = self.cross_entropy_loss(output_classes, targets)
 
-            loss = loss1 + loss2
+        #    loss = loss1 + loss2
 
             total_loss += loss.item() * images.size(0)
             num_correct += (pred == targets).sum().item()
             num_images += images.size(0)
-
-      
 
             self.optimizer.zero_grad()
             loss.backward()
@@ -463,14 +463,15 @@ def main():
         print("Start epoch {} ...".format(epoch + 1))
 
         # Adjust lr
-        lr = adjust_learning_rate(trainer.args, trainer.optimizer, epoch)
-        print('Adjusted learning rate to {:.5f}'.format(lr))
+        trainer.adjust_learning_rate(epoch + 1)
+        # lr = adjust_learning_rate(trainer.args, trainer.optimizer, epoch)
+        # print('Adjusted learning rate to {:.5f}'.format(lr))
         
         # Train
         print('Train ...')
         train_performance = trainer.simclr_train(split='train')
 
-        # trainer.adjust_learning_rate(epoch + 1)
+        # 
         # train_performance = trainer.train(split='train')
         trainer.report_train(train_performance, epoch + 1, split='train')
         trainer.evaluate(epoch + 1, split='val')
@@ -491,3 +492,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
