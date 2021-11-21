@@ -112,7 +112,7 @@ class ResNetCam(nn.Module):
             cams = (cam_weights.view(*feature_map.shape[:2], 1, 1) *
                     feature_map).mean(1, keepdim=False)
             return cams
-        return {'logits': logits, 'pre_logits': pre_logit}
+        return pre_logit, logits
 
     def _make_layer(self, block, planes, blocks, stride):
         layers = self._layer(block, planes, blocks, stride)
