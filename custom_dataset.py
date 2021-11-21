@@ -11,7 +11,7 @@ from torch.utils.data import Dataset
     Returns an image together with an augmentation.
 """
 class AugmentedDataset(Dataset):
-    def __init__(self, dataset):
+    def __init__(self, dataset, transformers):
         super(AugmentedDataset, self).__init__()
         transform = dataset.transform
         dataset.transform = None
@@ -23,7 +23,7 @@ class AugmentedDataset(Dataset):
 
         else:
             self.image_transform = transform
-            self.augmentation_transform = transform
+            self.augmentation_transform = transformers['augment']
 
     def __len__(self):
         return len(self.dataset)
