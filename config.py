@@ -88,6 +88,8 @@ def configure_scoremap_output_paths(args):
     return scoremaps
 
 
+
+
 def configure_log_folder(args):
     log_folder = ospj('train_log', args.experiment_name)
 
@@ -95,9 +97,11 @@ def configure_log_folder(args):
         if args.override_cache:
             shutil.rmtree(log_folder, ignore_errors=True)
         else:
-            raise RuntimeError("Experiment with the same name exists: {}"
+            if args.resume == 'False':
+                raise RuntimeError("Experiment with the same name exists: {}"
                                .format(log_folder))
-    os.makedirs(log_folder)
+    if args.resume == 'False':
+        os.makedirs(log_folder)
     return log_folder
 
 
@@ -261,6 +265,10 @@ def get_configs():
 
     parser.add_argument('--setup', type=str, default='simclr', 
                         help='choose the loss for ssl')
+
+    # resume 
+    parser.add_argument("--resume", type=str, default='False')
+    parser.add_argument("--onlyTest", type=str2bool, default=False)
 
     args = parser.parse_args()
 
