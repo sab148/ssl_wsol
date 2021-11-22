@@ -238,13 +238,14 @@ class Trainer(object):
         for i, batch in enumerate(loader):
             images = batch[0]
             images_augmented = batch[-1]
-        #    targets = batch[1].cuda(non_blocking=True)
             b, c, h, w = images.size()
             input_ = torch.cat([images.unsqueeze(1), images_augmented.unsqueeze(1)], dim=1)
             input_ = input_.view(-1, c, h, w) 
             input_ = input_.cuda(non_blocking=True)
-            targets = torch.cat((batch[1],batch[1]),0).cuda(non_blocking=True)
-            #targets = batch['target'].cuda(non_blocking=True)
+            
+            targets = torch.cat((batch[1].unsqueeze(1),batch[1].unsqueeze(1)),dim=1)
+            targets = targets.view(-1)
+            targets = targets.cuda(non_blocking=True)
 
             output, output_classes = self.model(input_)
             output = output.view(b, 2, -1)
@@ -450,35 +451,39 @@ class Trainer(object):
 def main():
     trainer = Trainer()
 
-    print("===========================================================")
-    print("Start epoch 0 ...")
-    trainer.evaluate(epoch=0, split='val')
-    trainer.print_performances()
-    trainer.report(epoch=0, split='val')
-    trainer.save_checkpoint(epoch=0, split='val')
-    print("Epoch 0 done.")
 
-    for epoch in range(trainer.args.epochs):
-        print("===========================================================")
-        print("Start epoch {} ...".format(epoch + 1))
+    if trainer.args.onlyTest == False :
 
-        # Adjust lr
-        trainer.adjust_learning_rate(epoch + 1)
-        # lr = adjust_learning_rate(trainer.args, trainer.optimizer, epoch)
-        # print('Adjusted learning rate to {:.5f}'.format(lr))
-        
-        # Train
-        print('Train ...')
-        train_performance = trainer.simclr_train(split='train')
+        if trainer.args.resume == 'False':
+            print("===========================================================")
+            print("Start epoch 0 ...")
+            trainer.evaluate(epoch=0, split='val')
+            trainer.print_performances()
+            trainer.report(epoch=0, split='val')
+            trainer.save_checkpoint(epoch=0, split='val')
+            print("Epoch 0 done.")
 
-        # 
-        # train_performance = trainer.train(split='train')
-        trainer.report_train(train_performance, epoch + 1, split='train')
-        trainer.evaluate(epoch + 1, split='val')
-        trainer.print_performances()
-        trainer.report(epoch + 1, split='val')
-        trainer.save_checkpoint(epoch + 1, split='val')
-        print("Epoch {} done.".format(epoch + 1))
+        for epoch in range(trainer.args.epochs):
+            print("===========================================================")
+            print("Start epoch {} ...".format(epoch + 1))
+
+            # Adjust lr
+            trainer.adjust_learning_rate(epoch + 1)
+            # lr = adjust_learning_rate(trainer.args, trainer.optimizer, epoch)
+            # print('Adjusted learning rate to {:.5f}'.format(lr))
+            
+            # Train
+            print('Train ...')
+            train_performance = trainer.simclr_train(split='train')
+
+            # 
+            # train_performance = trainer.train(split='train')
+            trainer.report_train(train_performance, epoch + 1, split='train')
+            trainer.evaluate(epoch + 1, split='val')
+            trainer.print_performances()
+            trainer.report(epoch + 1, split='val')
+            trainer.save_checkpoint(epoch + 1, split='val')
+            print("Epoch {} done.".format(epoch + 1))
 
     print("===========================================================")
     print("Final epoch evaluation on test set ...")
