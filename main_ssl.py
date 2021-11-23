@@ -132,9 +132,9 @@ class Trainer(object):
             acol_drop_threshold=self.args.acol_threshold)
 
 #
-        # if self.args.setup in ['simclr', 'moco']:
-        #     from wsol.method.models import ContrastiveModel
-        #     model = ContrastiveModel(model, model.dim, self.args.head, self.args.features_dim)
+        if self.args.setup in ['simclr', 'moco']:
+            from wsol.method.models import ContrastiveModel
+            model = ContrastiveModel(model, model.dim, self.args.head, self.args.features_dim)
 
         model = nn.DataParallel(model)
         model = model.cuda()
@@ -238,6 +238,9 @@ class Trainer(object):
         for i, batch in enumerate(loader):
             images = batch[0]
             images_augmented = batch[-1]
+         #   targets = batch[1].cuda(non_blocking=True)
+          #  images = images.cuda(non_blocking=True)
+
             b, c, h, w = images.size()
             input_ = torch.cat([images.unsqueeze(1), images_augmented.unsqueeze(1)], dim=1)
             input_ = input_.view(-1, c, h, w) 
@@ -247,17 +250,17 @@ class Trainer(object):
             targets = targets.view(-1)
             targets = targets.cuda(non_blocking=True)
 
-            output, output_classes = self.model(input_)
+            output, output_classes = self.model(images)
             output = output.view(b, 2, -1)
             pred = output_classes.argmax(dim=1)
 
             
 
-#            loss1 = self.criterion(output)
+            loss1 = self.criterion(output)
 
-            loss = self.cross_entropy_loss(output_classes, targets)
+            loss2 = self.cross_entropy_loss(output_classes, targets)
 
-        #    loss = loss1 + loss2
+            loss = loss1 + loss2
 
             total_loss += loss.item() * images.size(0)
             num_correct += (pred == targets).sum().item()
@@ -341,7 +344,7 @@ class Trainer(object):
     def _compute_accuracy(self, loader):
         num_correct = 0
         num_images = 0
-
+        pred_prob=[]
         for i, batch in enumerate(loader):
             images = batch[0]
             targets = batch[1]
@@ -353,7 +356,12 @@ class Trainer(object):
             num_correct += (pred == targets).sum().item()
             num_images += images.size(0)
 
+            pred_prob.append(pred)
+        
         classification_acc = num_correct / float(num_images) * 100
+
+        with open('pred_prob.pkl', 'wb') as f :
+            pickle.dump(pred_prob, f)
         return classification_acc
 
     def evaluate(self, epoch, split):
