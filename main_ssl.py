@@ -100,7 +100,8 @@ class Trainer(object):
             resize_size=self.args.resize_size,
             crop_size=self.args.crop_size,
             proxy_training_set=self.args.proxy_training_set,
-            num_val_sample_per_class=self.args.num_val_sample_per_class)
+            num_val_sample_per_class=self.args.num_val_sample_per_class,
+            pascal=self.args.pascal)
 
     def _set_performance_meters(self):
         self._EVAL_METRICS += ['localization_IOU_{}'.format(threshold)
@@ -254,7 +255,8 @@ class Trainer(object):
             output = output.view(b, 2, -1)
             pred = output_classes.argmax(dim=1)
 
-            
+            if i % int(len(loader) / 10) == 0:
+                print(" iteration ({} / {})".format(i + 1, len(loader)))
 
             loss1 = self.criterion(output)
 
@@ -266,10 +268,11 @@ class Trainer(object):
             num_correct += (pred == targets).sum().item()
             num_images += images.size(0)
 
+
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
-
+        
 
 
         loss_average = total_loss / float(num_images)

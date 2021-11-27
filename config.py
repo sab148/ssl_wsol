@@ -160,6 +160,7 @@ def get_configs():
     parser.add_argument('--num_val_sample_per_class', type=int, default=0,
                         help='Number of full_supervision validation sample per '
                              'class. 0 means "use all available samples".')
+    parser.add_argument("--pascal", type=str, default="/home/user058/ssl_wsol/VOCdevkit")
 
     # Setting
     parser.add_argument('--architecture', default='resnet18',

@@ -204,7 +204,7 @@ class WSOLImageLabelDataset(Dataset):
 
 
 def get_data_loader(data_roots, metadata_root, batch_size, workers,
-                    resize_size, crop_size, proxy_training_set,
+                    resize_size, crop_size, proxy_training_set, pascal,
                     num_val_sample_per_class=0, to_augmented_dataset=True):
     dataset_transforms = dict(
         augment=transforms.Compose([
@@ -248,7 +248,7 @@ def get_data_loader(data_roots, metadata_root, batch_size, workers,
                     transform=dataset_transforms['train'],
                     proxy=proxy_training_set and _SPLITS[0] == 'train',
                     num_sample_per_class=(0)
-                ), dataset_transforms),
+                ), dataset_transforms, pascal),
                 batch_size=batch_size,
                 shuffle=True,
                 num_workers=workers)
