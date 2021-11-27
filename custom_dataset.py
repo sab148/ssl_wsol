@@ -2,17 +2,20 @@
 Author: Wouter Van Gansbeke, Simon Vandenhende
 Licensed under the CC BY-NC 4.0 license (https://creativecommons.org/licenses/by-nc/4.0/)
 """
+import cv2
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+import augmentation
 
 """ 
     AugmentedDataset
     Returns an image together with an augmentation.
 """
 class AugmentedDataset(Dataset):
-    def __init__(self, dataset, transformers):
+    def __init__(self, dataset, transformers,pascal):
         super(AugmentedDataset, self).__init__()
+        self.occluders = augmentation.load_occluders(pascal)
         transform = dataset.transform
         dataset.transform = None
         self.dataset = dataset
@@ -33,7 +36,10 @@ class AugmentedDataset(Dataset):
         image = sample[0]
         
         sample[0] = self.image_transform(image)
-        sample.append(self.augmentation_transform(image))
+
+        occluded_image = augmentation.occlude_with_objects(image, self.occluders)
+
+        sample.append(self.augmentation_transform(occluded_image))
 
         return sample
 
