@@ -12,6 +12,7 @@ import cv2
 import PIL.Image
 from torchvision import transforms
 
+from PIL import Image
 _IMAGE_MEAN_VALUE = [0.485, 0.456, 0.406]
 _IMAGE_STD_VALUE = [0.229, 0.224, 0.225]
 
@@ -106,7 +107,7 @@ def occlude_with_objects(im, occluders):
     """Returns an augmented version of `im`, containing some occluders from the Pascal VOC dataset."""
 
     result = im.copy()
-    width_height = np.asarray([im.shape[1], im.shape[0]])
+    width_height = np.asarray([im.size[1], im.size[0]])
     im_scale_factor = min(width_height) / 256
     count = np.random.randint(1, 8)
 
@@ -118,9 +119,10 @@ def occlude_with_objects(im, occluders):
         occluder = resize_by_factor(occluder, scale_factor)
 
         center = np.random.uniform([0,0], width_height)
-        paste_over(im_src=occluder, im_dst=result, center=center)
+        reslt = paste_over(im_src=occluder, im_dst=result, center=center)
+        im = PIL.Image.fromarray(np.uint8(reslt))
 
-    return result
+    return reslt
 
 
 def paste_over(im_src, im_dst, center):
@@ -136,7 +138,7 @@ def paste_over(im_src, im_dst, center):
             at each pixel. Large values mean more visibility for `im_src`.
         center: coordinates in `im_dst` where the center of `im_src` should be placed.
     """
-
+    im_dst = np.asarray(im_dst).copy()
     width_height_src = np.asarray([im_src.shape[1], im_src.shape[0]])
     width_height_dst = np.asarray([im_dst.shape[1], im_dst.shape[0]])
 
@@ -156,6 +158,8 @@ def paste_over(im_src, im_dst, center):
 
     im_dst[start_dst[1]:end_dst[1], start_dst[0]:end_dst[0]] = (
             alpha * color_src + (1 - alpha) * region_dst)
+    
+    return im_dst
 
 
 def resize_by_factor(im, factor):
@@ -174,20 +178,20 @@ def list_filepaths(dirpath):
 
 
 if __name__=='__main__':
-    main()
-#     occluders = load_occluders("/home/dell/Bureau/ssl_wsol/synthetic-occlusion/VOCdevkit/VOC2012")
-#     img = cv2.imread('/home/dell/Bureau/ssl_wsol/ssl_wsol/dataset/CUB/001.Black_footed_Albatross/30107316117.jpg') 
-#     original_im = cv2.resize(img, (256,256))
-#    # occluded_image = occlude_with_objects(example_image, occluders)
+    # main()
+    occluders = load_occluders("/home/dell/Bureau/ssl_wsol/synthetic-occlusion/VOCdevkit/VOC2012")
+    img = Image.open('/home/dell/Bureau/ssl_wsol/ssl_wsol/dataset/CUB/001.Black_footed_Albatross/30107316117.jpg') 
+    original_im = img.resize((256,256))
+   # occluded_image = occlude_with_objects(example_image, occluders)
     
-#     fig, axarr = plt.subplots(3,3, figsize=(7,7))
-#     for ax in axarr.ravel():
-#         occluded_im = occlude_with_objects(original_im, occluders)
-#         ax.imshow(occluded_im, interpolation="none")
-#         ax.axis('off')
+    fig, axarr = plt.subplots(3,3, figsize=(7,7))
+    for ax in axarr.ravel():
+        occluded_im = occlude_with_objects(original_im, occluders)
+        ax.imshow(occluded_im, interpolation="none")
+        ax.axis('off')
 
-#     fig.tight_layout(h_pad=0)
+    fig.tight_layout(h_pad=0)
   
-#    # plt.savefig('examples.jpg', dpi=150, bbox_inches='tight')
-#     plt.show()
-#     # cv2.imshow('image', occluded_image)
+   # plt.savefig('examples.jpg', dpi=150, bbox_inches='tight')
+    plt.show()
+    # cv2.imshow('image', occluded_image)
