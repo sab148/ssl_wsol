@@ -8,13 +8,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.model_zoo import load_url
 
-from .method import AcolBase
-from .method import ADL
-from .method import spg
-from .method.util import normalize_tensor
-from .util import remove_layer
-from .util import replace_layer
-from .util import initialize_weights
+from method import AcolBase
+from method import ADL
+from method import spg
+from method.util import normalize_tensor
+from util import remove_layer
+from util import replace_layer
+from util import initialize_weights
 
 __all__ = ['vgg16']
 
@@ -51,12 +51,14 @@ configs_dict = {
 class VggCam(nn.Module):
     def __init__(self, features, num_classes=1000, **kwargs):
         super(VggCam, self).__init__()
+        self.large_feature_map = kwargs['large_feature_map']
         self.features = features
-
+  
         self.conv6 = nn.Conv2d(512, 1024, kernel_size=3, padding=1)
         self.relu = nn.ReLU(inplace=False)
         self.avgpool = nn.AdaptiveAvgPool2d(1)
-        self.fc_ssl = nn.Identity()
+        
+        self.fc0 = nn.Linear(2432, 1024)
         self.fc = nn.Linear(1024, num_classes)
         
         initialize_weights(self.modules(), init_mode='he')
@@ -64,12 +66,43 @@ class VggCam(nn.Module):
         self.dim = 1024
 
     def forward(self, x, labels=None, return_cam=False):
-        x = self.features(x)
+
+        x = self.features[:5](x)
+        
+        x = self.features[5:10](x)
+        m1 = nn.Upsample(scale_factor=2, mode='nearest')
+        x1 = m1(x)
+        x = self.features[10:17](x)
+        m2 = nn.Upsample(scale_factor=4, mode='nearest')
+        x2 = m2(x)
+        
+        x = self.features[17:24](x)
+        if self.large_feature_map:
+            factor = 4
+        else:
+            factor = 8
+        m3 = nn.Upsample(scale_factor=factor, mode='nearest')
+        x3 = m3(x)
+
+        x = self.features[24:](x)
+        m4 = nn.Upsample(scale_factor=factor, mode='nearest')
+        x4 = m4(x)
         x = self.conv6(x)
         x = self.relu(x)
+
+        if self.large_feature_map:
+            factor1 = 24
+        else :
+            factor1 = 8
+
+        m5 = nn.Upsample(scale_factor=factor1, mode='nearest')
+        x5 = m4(x)     
+
+        x = torch.cat((x1,x2,x3,x4,x5),1) 
+        
         pre_logit = self.avgpool(x)
         pre_logit = pre_logit.view(pre_logit.size(0), -1)
-        pre_logit = self.fc_ssl(pre_logit)
+        pre_logit = self.fc0(pre_logit)
         logits = self.fc(pre_logit)
 
         if return_cam:
@@ -78,7 +111,7 @@ class VggCam(nn.Module):
             cams = (cam_weights.view(*feature_map.shape[:2], 1, 1) *
                     feature_map).mean(1, keepdim=False)
             return cams
-        return {'logits': logits, 'pre_logits': pre_logit}
+        return pre_logit, logits
 
 
 class VggAcol(AcolBase):
@@ -300,3 +333,11 @@ def vgg16(architecture_type, pretrained=False, pretrained_path=None,
         model = load_pretrained_model(model, architecture_type,
                                       path=pretrained_path)
     return model
+
+
+if __name__ == "__main__":
+    model = vgg16('cam', large_feature_map=True) 
+    a = torch.rand(2,3,224,224)
+    model(a)
+
+      
